@@ -120,7 +120,6 @@ func poll_data(categories [4]int64) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				var changed []string
 				if len(changelog) > 0 {
 					// Prepare telegram message
 					message := ""
@@ -139,15 +138,9 @@ func poll_data(categories [4]int64) {
 						if err != nil {
 							panic(err)
 						}
-						// Prepare rest of message
-						if change.Path[0] == "Price" {
-							message = message + "*PRICE HAS CHANGED!!!*\n"
-							message = message + "From: " + from + " to " + to + "\n"
-						}
-						if change.Path[0] == "IsShopOnly" {
-							message = message + "*SHOPONLY HAS CHANGED!!!*\n"
-							message = message + "From: " + from + " to " + to + "\n"
-						}
+
+						//Create update message
+						message = message + format(change.Path[0], databaseItem.DisplayName, from, to)
 					}
 					fmt.Println(message)
 					// Future send telegram message using telegram()
@@ -163,8 +156,24 @@ func telegram() {
 }
 
 func main() {
+
 	// Categories to index from bordershop.com
 	categories := [4]int64{9817, 9818, 9819, 9821}
 	// Set up datebase and insert all records
 	poll_data(categories)
+}
+
+var strDefinitions = map[string]string{
+	"Price":      "Price of #NAME has changed from #FROM to #TO",
+	"IsShopOnly": "#NAME has changed shop status from #FROM to #TO",
+}
+
+func format(event string, item string, from string, to string) string {
+
+	str := strDefinitions[event]
+	str = strings.ReplaceAll(str, "#NAME", item)
+	str = strings.ReplaceAll(str, "#FROM", from)
+	str = strings.ReplaceAll(str, "#TO", to)
+
+	return str
 }
