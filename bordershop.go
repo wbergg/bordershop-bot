@@ -161,8 +161,6 @@ func main() {
 
 	api_key := os.Getenv("BS_APIKEY")
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-	fmt.Println(api_key)
-	fmt.Println(channel)
 	tg := tele.New(api_key, channel, false)
 	tg.Init()
 

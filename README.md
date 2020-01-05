@@ -4,7 +4,7 @@ A tool for scraping categories found on bordershop.com webpage and save all item
 
 The following environmental variables need to be set in order to connect to the DB before running:
 
-Example:
+Database definition:
 
 BS_HOST="192.168.0.1"
 
@@ -14,3 +14,8 @@ BS_PASSWORD="password"
 
 BS_DBNAME="dbname"
 
+Telegram definition:
+
+BS_APIKEY="key"
+
+BS_CHANNEL="channel"
