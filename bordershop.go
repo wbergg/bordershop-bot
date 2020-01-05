@@ -102,7 +102,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				// Prepare telegram message
 				message := ""
 				message = message + "*New item added to BORDERSHOP!*\n"
-				message = message + "https://scandlines.cloudimg.io/fit/800x800/fbright5/_img_/" + product.Image + "\n"
+				message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
 				message = message + re.ReplaceAllString(product.DisplayName, " ") + "\n"
 				message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
 				//message = message + "Price: " + fmt.Sprintf("%f", product.Price.AmountAsDecimal) + "\n"
@@ -113,7 +113,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					message = message + "*ITEM IS SOLD OUT!*" + "\n"
 				}
 				fmt.Println(message)
-				// Future send telegram message using telegram()
+				t.SendM(message)
 			}
 			// Diff bordershop struct with database struct
 			if databaseItem.ID == pid {
@@ -125,8 +125,8 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					// Prepare telegram message
 					message := ""
 					message = message + "*UPDATE ON BORDERSHOP!*\n"
-					message = message + "https://scandlines.cloudimg.io/fit/800x800/fbright5/_img_/" + product.Image + "\n"
-					message = message + re.ReplaceAllString(product.DisplayName, " ") + "\n"
+					message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n" + "\n"
+					//message = message + re.ReplaceAllString(product.DisplayName, " ") + "\n"
 					for _, change := range changelog {
 						from := fmt.Sprintf("%v", change.From)
 						to := fmt.Sprintf("%v", change.To)
@@ -141,10 +141,9 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 						}
 
 						//Create update message
-						message = message + format(change.Path[0], databaseItem.DisplayName, from, to)
+						message = message + format(change.Path[0], re.ReplaceAllString(databaseItem.DisplayName, " "), from, to)
 					}
 					fmt.Println(message)
-					// Future send telegram message using telegram()
 
 					t.SendM(message)
 				}
@@ -160,7 +159,9 @@ func telegram() {
 
 func main() {
 
-	tg := tele.New("DENIS", 12729, false)
+	api_key := os.Getenv("BS_APIKEY")
+	channel := os.Getenv("BS_CHANNEL")
+	tg := tele.New(api_key, channel, false)
 	tg.Init()
 
 	// Categories to index from bordershop.com
@@ -171,9 +172,9 @@ func main() {
 }
 
 var strDefinitions = map[string]string{
-	"Price":            "Price of #NAME has changed from #FROM to #TO",
-	"IsShopOnly-false": "#NAME can now only be bought in shop",
-	"IsShopOnly-true":  "#NAME can now be bought online",
+	"Price":            "Price of #NAME has changed from #FROM to #TO SEK",
+	"IsShopOnly-false": "#NAME can now only be bought in shop!",
+	"IsShopOnly-true":  "#NAME can now be bought online!",
 }
 
 func format(event string, item string, from string, to string) string {
