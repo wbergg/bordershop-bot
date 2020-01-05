@@ -1,0 +1,10 @@
+CREATE TABLE "items" (
+	id int PRIMARY KEY,
+	price float,
+	displayname varchar(100),
+ 	image varchar(100),
+	abv float,
+	unitpricetext2 varchar(100),
+	isshoponly boolean,
+	issoldout boolean
+ );
