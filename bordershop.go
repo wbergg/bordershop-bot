@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/r3labs/diff"
+	"github.com/wbergg/bordershop-bot/tele"
 )
 
 type Items struct {
@@ -25,7 +26,7 @@ type Items struct {
 	IsSoldOut      sql.NullBool    `db:"issoldout"`
 }
 
-func poll_data(categories [4]int64) {
+func poll_data(categories [4]int64, t *tele.Tele) {
 	// Read in env variables for DB
 	host := os.Getenv("BS_HOST")
 	port := 5432
@@ -144,6 +145,8 @@ func poll_data(categories [4]int64) {
 					}
 					fmt.Println(message)
 					// Future send telegram message using telegram()
+
+					t.SendM(message)
 				}
 			}
 		}
@@ -157,10 +160,14 @@ func telegram() {
 
 func main() {
 
+	tg := tele.New("DENIS", 12729, false)
+	tg.Init()
+
 	// Categories to index from bordershop.com
 	categories := [4]int64{9817, 9818, 9819, 9821}
 	// Set up datebase and insert all records
-	poll_data(categories)
+	poll_data(categories, tg)
+
 }
 
 var strDefinitions = map[string]string{
