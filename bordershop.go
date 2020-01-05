@@ -164,12 +164,19 @@ func main() {
 }
 
 var strDefinitions = map[string]string{
-	"Price":      "Price of #NAME has changed from #FROM to #TO",
-	"IsShopOnly": "#NAME has changed shop status from #FROM to #TO",
+	"Price":            "Price of #NAME has changed from #FROM to #TO",
+	"IsShopOnly-false": "#NAME can now only be bought in shop",
+	"IsShopOnly-true":  "#NAME can now be bought online",
 }
 
 func format(event string, item string, from string, to string) string {
 
+	if to == "true" {
+		event = event + "-true"
+	}
+	if to == "false" {
+		event = event + "-false"
+	}
 	str := strDefinitions[event]
 	str = strings.ReplaceAll(str, "#NAME", item)
 	str = strings.ReplaceAll(str, "#FROM", from)
