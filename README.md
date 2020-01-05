@@ -1,6 +1,8 @@
 # bordershop-bot
 
-The following environmental variables need to be set before running:
+A tool for scraping categories found on bordershop.com webpage and save all items to a database. Then output new entires and/or updates to a Telegram channel.
+
+The following environmental variables need to be set in order to connect to the DB before running:
 
 Example:
 
