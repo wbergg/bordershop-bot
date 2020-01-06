@@ -154,10 +154,6 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 	}
 }
 
-func telegram() {
-	fmt.Println("future use - send diff to telegram")
-}
-
 func main() {
 
 	api_key := os.Getenv("BS_APIKEY")
