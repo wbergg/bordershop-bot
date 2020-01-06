@@ -16,14 +16,23 @@ import (
 )
 
 type Items struct {
-	ID             int64           `db:"id"`
-	Price          sql.NullFloat64 `db:"price"`
-	DisplayName    string          `db:"displayname"`
-	Image          string          `db:"image"`
-	ABV            sql.NullFloat64 `db:"abv"`
-	UnitPriceText2 string          `db:"unitpricetext2"`
-	IsShopOnly     sql.NullBool    `db:"isshoponly"`
-	IsSoldOut      sql.NullBool    `db:"issoldout"`
+	ID                int64           `db:"id"`
+	Price             sql.NullFloat64 `db:"price"`
+	DisplayName       string          `db:"displayname"`
+	Brand             string          `db:"brand"`
+	Image             string          `db:"image"`
+	ABV               sql.NullFloat64 `db:"abv"`
+	uom               string          `db:"uom"`
+	qtyPrUom          string          `db:"qtyPrUom"`
+	UnitPriceText1    string          `db:"unitpricetext1"`
+	UnitPriceText2    string          `db:"unitpricetext2"`
+	discountText      string          `db:"discounttext"`
+	beforePrice       sql.NullFloat64 `db:"beforeprice"`
+	beforePricePrefix string          `db:"beforepriceprefix"`
+	splashText        string          `db:"splashtext"`
+	isSmileOffer      sql.NullBool    `db:"issmileoffer"`
+	IsShopOnly        sql.NullBool    `db:"isshoponly"`
+	IsSoldOut         sql.NullBool    `db:"issoldout"`
 }
 
 func poll_data(categories [4]int64, t *tele.Tele) {

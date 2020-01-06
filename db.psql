@@ -1,10 +1,19 @@
 CREATE TABLE "items" (
 	id int PRIMARY KEY,
 	price float,
-	displayname varchar(100),
+	displayname varchar(50),
+	brand varchar(50),
  	image varchar(100),
 	abv float,
-	unitpricetext2 varchar(100),
+	uom varchar(10),
+	qtypruom varchar(10),
+	unitpricetext1 varchar(50),
+	unitpricetext2 varchar(50),
+	discounttext varchar(50),
+	beforeprice float,
+	beforepriceprefix varchar(50),
+	splashtext varchar(10),
+	issmileoffer boolean,
 	isshoponly boolean,
 	issoldout boolean
  );
