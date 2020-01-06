@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coral/bordershop"
 	"github.com/jmoiron/sqlx"
@@ -164,10 +165,22 @@ func main() {
 	tg := tele.New(api_key, channel, false)
 	tg.Init()
 
-	// Categories to index from bordershop.com
+	// Categories to index from bordershop.coma
 	categories := [4]int64{9817, 9818, 9819, 9821}
 	// Set up datebase and insert all records
 	poll_data(categories, tg)
+
+	tmr := time.NewTimer(30 * time.Minute)
+
+	go func() {
+		for {
+			select {
+			case <-tmr.C:
+				categories := [4]int64{9817, 9818, 9819, 9821}
+				poll_data(categories, tg)
+			}
+		}
+	}()
 
 }
 
