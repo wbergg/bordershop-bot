@@ -161,6 +161,9 @@ func telegram() {
 func main() {
 
 	api_key := os.Getenv("BS_APIKEY")
+	if api_key == "" {
+		panic("No valid Telegram API Key")
+	}
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
 	tg := tele.New(api_key, channel, false)
 	tg.Init()
