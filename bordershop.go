@@ -19,7 +19,7 @@ type Items struct {
 	ID                int64           `db:"id"`
 	Price             sql.NullFloat64 `db:"price"`
 	DisplayName       string          `db:"displayname"`
-	Brand             sql.NullString  `db:"brand"`
+	Brand             string          `db:"brand"`
 	Image             string          `db:"image"`
 	ABV               sql.NullFloat64 `db:"abv"`
 	Uom               string          `db:"uom"`
@@ -109,14 +109,25 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 			}
 			if databaseItem.ID != pid {
 				sqlStatement :=
-					`INSERT INTO items (id, displayname, price, image, unitpricetext2, isshoponly, issoldout) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7)`
+					`INSERT INTO items (id, price, displayname, brand, image, uom, qtypruom, unitpricetext1, 
+						unitpricetext2, discounttext, beforeprice, beforepriceprefix, splashtext, issmileoffer, 
+						isshoponly, issoldout) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 				_, err = db.Exec(sqlStatement,
 					product.ID,
-					product.DisplayName,
 					product.Price.AmountAsDecimal,
+					product.DisplayName,
+					product.Brand,
 					product.Image,
+					product.Uom,
+					product.QtyPrUom,
+					product.UnitPriceText1,
 					product.UnitPriceText2,
+					product.Discount.DiscountText,
+					product.Discount.BeforePrice.AmountAsDecimal,
+					product.Discount.BeforePricePrefix,
+					product.Discount.SplashText,
+					product.Discount.IsSmileOffer,
 					product.AddToBasket.IsShopOnly,
 					product.AddToBasket.IsSoldOut)
 
@@ -137,6 +148,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					message = message + "*ITEM IS SOLD OUT!*" + "\n"
 				}
 				fmt.Println(message)
+				// Send message to Telegram
 				t.SendM(message)
 			}
 			// Diff bordershop struct with database struct
@@ -168,7 +180,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 						message = message + format(change.Path[0], re.ReplaceAllString(databaseItem.DisplayName, " "), from, to)
 					}
 					fmt.Println(message)
-
+					// Send message to Telegram
 					t.SendM(message)
 				}
 			}
