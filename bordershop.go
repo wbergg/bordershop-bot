@@ -153,10 +153,6 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 	}
 }
 
-func telegram() {
-	fmt.Println("future use - send diff to telegram")
-}
-
 func main() {
 
 	api_key := os.Getenv("BS_APIKEY")
@@ -175,6 +171,8 @@ var strDefinitions = map[string]string{
 	"Price":            "Price of #NAME has changed from #FROM to #TO SEK",
 	"IsShopOnly-false": "#NAME can now only be bought in shop!",
 	"IsShopOnly-true":  "#NAME can now be bought online!",
+	"IsSoldOut-false":  "#NAME is back in stock!",
+	"IsSoldOut-true":   "#NAME is sold out!",
 }
 
 func format(event string, item string, from string, to string) string {
