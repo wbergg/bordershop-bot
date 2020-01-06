@@ -169,8 +169,8 @@ func main() {
 
 var strDefinitions = map[string]string{
 	"Price":            "Price of #NAME has changed from #FROM to #TO SEK",
-	"IsShopOnly-false": "#NAME can now only be bought in shop!",
-	"IsShopOnly-true":  "#NAME can now be bought online!",
+	"IsShopOnly-false": "#NAME can now be bought online!",
+	"IsShopOnly-true":  "#NAME can now only be bought in shop!",
 	"IsSoldOut-false":  "#NAME is back in stock!",
 	"IsSoldOut-true":   "#NAME is sold out!",
 }
