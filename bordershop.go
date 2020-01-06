@@ -23,7 +23,7 @@ type Items struct {
 	Image             string          `db:"image"`
 	ABV               sql.NullFloat64 `db:"abv"`
 	uom               string          `db:"uom"`
-	qtyPrUom          string          `db:"qtyPrUom"`
+	qtyPrUom          string          `db:"qtypruom"`
 	UnitPriceText1    string          `db:"unitpricetext1"`
 	UnitPriceText2    string          `db:"unitpricetext2"`
 	discountText      string          `db:"discounttext"`
@@ -71,9 +71,23 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					Float64: product.Price.AmountAsDecimal,
 					Valid:   true,
 				},
-				DisplayName:    product.DisplayName,
+				DisplayName: product.DisplayName,
+				Brand:       product.Brand,
+				uom:         product.uom,
+				qtyPrUom:	product.qtyPrUom,
 				Image:          product.Image,
+				UnitPriceText1: product.UnitPriceText1,
 				UnitPriceText2: product.UnitPriceText2,
+				discountText: product.Discount.discountText,
+				beforePrice: sql.NullFloat64{
+					Float64: product.Discount.BeforePrice.AmountAsDecimal,
+					Valid:   true,
+				beforePricePrefix: product.Discount.BeforePricePrefix,
+				SplashText: product.Discount.SplashText,
+				isSmileOffer: sql.NullBool{
+					Bool:  product.AddToBasket.isSmileOffer,
+					Valid: true,
+				},
 				IsShopOnly: sql.NullBool{
 					Bool:  product.AddToBasket.IsShopOnly,
 					Valid: true,
