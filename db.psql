@@ -3,7 +3,7 @@ CREATE TABLE "items" (
 	price float,
 	displayname varchar(50),
 	brand varchar(50),
- 	image varchar(100),
+	image varchar(100),
 	abv float,
 	uom varchar(10),
 	qtypruom varchar(10),

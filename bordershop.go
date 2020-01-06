@@ -19,18 +19,18 @@ type Items struct {
 	ID                int64           `db:"id"`
 	Price             sql.NullFloat64 `db:"price"`
 	DisplayName       string          `db:"displayname"`
-	Brand             string          `db:"brand"`
+	Brand             sql.NullString  `db:"brand"`
 	Image             string          `db:"image"`
 	ABV               sql.NullFloat64 `db:"abv"`
-	uom               string          `db:"uom"`
-	qtyPrUom          string          `db:"qtypruom"`
+	Uom               string          `db:"uom"`
+	QtyPrUom          string          `db:"qtypruom"`
 	UnitPriceText1    string          `db:"unitpricetext1"`
 	UnitPriceText2    string          `db:"unitpricetext2"`
-	discountText      string          `db:"discounttext"`
-	beforePrice       sql.NullFloat64 `db:"beforeprice"`
-	beforePricePrefix string          `db:"beforepriceprefix"`
-	splashText        string          `db:"splashtext"`
-	isSmileOffer      sql.NullBool    `db:"issmileoffer"`
+	DiscountText      string          `db:"discounttext"`
+	BeforePrice       sql.NullFloat64 `db:"beforeprice"`
+	BeforePricePrefix string          `db:"beforepriceprefix"`
+	SplashText        string          `db:"splashtext"`
+	IsSmileOffer      sql.NullBool    `db:"issmileoffer"`
 	IsShopOnly        sql.NullBool    `db:"isshoponly"`
 	IsSoldOut         sql.NullBool    `db:"issoldout"`
 }
@@ -71,21 +71,22 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					Float64: product.Price.AmountAsDecimal,
 					Valid:   true,
 				},
-				DisplayName: product.DisplayName,
-				Brand:       product.Brand,
-				uom:         product.uom,
-				qtyPrUom:	product.qtyPrUom,
+				DisplayName:    product.DisplayName,
+				Brand:          product.Brand,
+				Uom:            product.Uom,
+				QtyPrUom:       product.QtyPrUom,
 				Image:          product.Image,
 				UnitPriceText1: product.UnitPriceText1,
 				UnitPriceText2: product.UnitPriceText2,
-				discountText: product.Discount.discountText,
-				beforePrice: sql.NullFloat64{
+				DiscountText:   product.Discount.DiscountText,
+				BeforePrice: sql.NullFloat64{
 					Float64: product.Discount.BeforePrice.AmountAsDecimal,
 					Valid:   true,
-				beforePricePrefix: product.Discount.BeforePricePrefix,
-				SplashText: product.Discount.SplashText,
-				isSmileOffer: sql.NullBool{
-					Bool:  product.AddToBasket.isSmileOffer,
+				},
+				BeforePricePrefix: product.Discount.BeforePricePrefix,
+				SplashText:        product.Discount.SplashText,
+				IsSmileOffer: sql.NullBool{
+					Bool:  product.Discount.IsSmileOffer,
 					Valid: true,
 				},
 				IsShopOnly: sql.NullBool{
