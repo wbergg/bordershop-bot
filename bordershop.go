@@ -222,7 +222,7 @@ func format(event string, item string, from string, to string) string {
 		event = event + "-false"
 	}
 	if event == "DiscountText" {
-		if event == "" {
+		if to == "" {
 			event = event + "-false"
 		} else {
 			event = event + "-true"
