@@ -166,7 +166,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					for _, change := range changelog {
 						from := fmt.Sprintf("%v", change.From)
 						to := fmt.Sprintf("%v", change.To)
-						//fmt.Println("Changed " + change.Path[0] + " from " + from + " to " + to)
+						fmt.Println("Changed " + change.Path[0] + " from " + from + " to " + to)
 
 						// Update changes
 						_, err := db.Exec(`UPDATE items SET `+strings.ToLower(change.Path[0])+` = $1 WHERE id = $2`,
@@ -204,11 +204,13 @@ func main() {
 }
 
 var strDefinitions = map[string]string{
-	"Price":            "Price of #NAME has changed from #FROM to #TO SEK",
-	"IsShopOnly-false": "#NAME can now be bought online!",
-	"IsShopOnly-true":  "#NAME can now only be bought in shop!",
-	"IsSoldOut-false":  "#NAME is back in stock!",
-	"IsSoldOut-true":   "#NAME is sold out!",
+	"Price":              "Price of #NAME has changed from #FROM to #TO SEK\n\n",
+	"DiscountText-true":  "#NAME is now on discount!\n\n#TO!",
+	"DiscountText-false": "#NAME is no longer on discount!",
+	"IsShopOnly-false":   "#NAME can now be bought online!",
+	"IsShopOnly-true":    "#NAME can now only be bought in shop!",
+	"IsSoldOut-false":    "#NAME is back in stock!",
+	"IsSoldOut-true":     "#NAME is sold out!",
 }
 
 func format(event string, item string, from string, to string) string {
@@ -219,6 +221,14 @@ func format(event string, item string, from string, to string) string {
 	if to == "false" {
 		event = event + "-false"
 	}
+	if event == "DiscountText" {
+		if event == "" {
+			event = event + "-false"
+		} else {
+			event = event + "-true"
+		}
+	}
+	fmt.Println(event)
 	str := strDefinitions[event]
 	str = strings.ReplaceAll(str, "#NAME", item)
 	str = strings.ReplaceAll(str, "#FROM", from)
