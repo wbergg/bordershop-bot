@@ -7,21 +7,23 @@ import (
 )
 
 type Tele struct {
-	apikey  string
-	channel int64
-	debug   bool
-	bot     *tgbotapi.BotAPI
+	apikey     string
+	channel    int64
+	debug      bool
+	wbergdebug bool
+	bot        *tgbotapi.BotAPI
 }
 
-func New(apikey string, channel int64, debug bool) *Tele {
+func New(apikey string, channel int64, debug bool, wbergdebug bool) *Tele {
 	return &Tele{
-		apikey:  apikey,
-		channel: channel,
-		debug:   debug,
+		apikey:     apikey,
+		channel:    channel,
+		debug:      debug,
+		wbergdebug: wbergdebug,
 	}
 }
 
-func (t *Tele) Init() {
+func (t *Tele) Init(debug bool) {
 	var err error
 	t.bot, err = tgbotapi.NewBotAPI(t.apikey)
 	if err != nil {
@@ -52,6 +54,11 @@ func (t *Tele) Init() {
 }
 
 func (t *Tele) SendM(message string) (tgbotapi.Message, error) {
+
+	if t.wbergdebug {
+		fmt.Println(message)
+		return tgbotapi.Message{}, nil
+	}
 
 	msg := tgbotapi.NewMessage(t.channel, message)
 	msg.ParseMode = "markdown"
