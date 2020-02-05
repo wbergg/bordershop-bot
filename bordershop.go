@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -225,10 +226,12 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 
 func main() {
 
+	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
+	flag.Parse()
+
 	api_key := os.Getenv("BS_APIKEY")
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-	tg := tele.New(api_key, channel, false)
-	tg.Init()
+	tg := tele.New(api_key, channel, false, *debug)
 
 	// Categories to index from bordershop.com
 	categories := [4]int64{9817, 9818, 9819, 9821}
