@@ -12,6 +12,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/r3labs/diff"
+	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/wbergg/bordershop-bot/tele"
 )
 
@@ -35,6 +37,8 @@ type Items struct {
 	IsSoldOut         sql.NullBool    `db:"issoldout"`
 }
 
+var price_change bool
+
 func poll_data(categories [4]int64, t *tele.Tele) {
 	// Read in env variables for DB
 	host := os.Getenv("BS_HOST")
@@ -42,6 +46,13 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 	user := os.Getenv("BS_USER")
 	password := os.Getenv("BS_PASSWORD")
 	dbname := os.Getenv("BS_DBNAME")
+
+	//Set up data logging
+	f, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		panic(err)
+	}
+	logrus.SetOutput(f)
 
 	for _, line := range categories {
 
@@ -147,6 +158,15 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				if product.AddToBasket.IsSoldOut == true {
 					message = message + "*ITEM IS SOLD OUT!*" + "\n"
 				}
+				// Log messange and other info
+				log.WithFields(logrus.Fields{
+					"DisplayName":    product.DisplayName,
+					"UnitPriceText2": product.UnitPriceText2,
+					"IsShopOnly":     product.AddToBasket.IsShopOnly,
+					"IsSoldOut":      product.AddToBasket.IsSoldOut,
+					"Message":        message,
+				}).Info("DEBUG from new item added")
+
 				fmt.Println(message)
 				// Send message to Telegram
 				t.SendM(message)
@@ -178,7 +198,21 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 
 						//Create update message
 						message = message + format(change.Path[0], re.ReplaceAllString(databaseItem.DisplayName, " "), from, to)
+
+						// Log messange and other info
+						log.WithFields(logrus.Fields{
+							"ID":             product.ID,
+							"DisplayName":    product.DisplayName,
+							"UnitPriceText2": product.UnitPriceText2,
+							"Change Path":    change.Path[0],
+							"Change-From":    change.From,
+							"Change-To":      change.To,
+							"IsShopOnly":     product.AddToBasket.IsShopOnly,
+							"IsSoldOut":      product.AddToBasket.IsSoldOut,
+							"Message":        message,
+						}).Info("DEBUG from update on item")
 					}
+
 					fmt.Println(message)
 					// Send message to Telegram
 					t.SendM(message)
@@ -211,6 +245,7 @@ var strDefinitions = map[string]string{
 	"IsShopOnly-true":    "#NAME can now only be bought in shop!",
 	"IsSoldOut-false":    "#NAME is back in stock!",
 	"IsSoldOut-true":     "#NAME is sold out!",
+	"UnitPriceText2":     "#NAME has changed price!\n\n#TO",
 }
 
 func format(event string, item string, from string, to string) string {
@@ -227,6 +262,13 @@ func format(event string, item string, from string, to string) string {
 		} else {
 			event = event + "-true"
 		}
+	}
+	if event == "Price" {
+		price_change = true
+	}
+	if price_change == true && event == "UnitPriceText2" {
+		price_change = false
+		return ""
 	}
 	fmt.Println(event)
 	str := strDefinitions[event]
