@@ -232,6 +232,8 @@ func main() {
 	api_key := os.Getenv("BS_APIKEY")
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
 	tg := tele.New(api_key, channel, false, *debug)
+	// temp hard set to false, read from cmd optins later for debug true/false
+	tg.Init(false)
 
 	// Categories to index from bordershop.com
 	categories := [4]int64{9817, 9818, 9819, 9821}
