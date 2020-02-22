@@ -251,6 +251,7 @@ var strDefinitions = map[string]string{
 	"IsSoldOut-false":    "#NAME is back in stock!",
 	"IsSoldOut-true":     "#NAME is sold out!",
 	"UnitPriceText2":     "#NAME has changed price!\n\n#TO",
+	"Image":              "#NAME has a new image!\n\n",
 }
 
 func format(event string, item string, from string, to string) string {
@@ -268,13 +269,16 @@ func format(event string, item string, from string, to string) string {
 			event = event + "-true"
 		}
 	}
+	// If price is false, set price to true to avoid sending unittextprice2 as well
 	if event == "Price" {
 		price_change = true
 	}
+	// If price is true, set price to false and return nothing instead unittextprice2
 	if price_change == true && event == "UnitPriceText2" {
 		price_change = false
 		return ""
 	}
+
 	fmt.Println(event)
 	str := strDefinitions[event]
 	str = strings.ReplaceAll(str, "#NAME", item)
