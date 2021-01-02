@@ -236,24 +236,6 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 	}
 }
 
-func main() {
-
-	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
-	flag.Parse()
-
-	api_key := os.Getenv("BS_APIKEY")
-	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-	tg := tele.New(api_key, channel, false, *debug)
-	// temp hard set to false, read from cmd optins later for debug true/false
-	tg.Init(false)
-
-	// Categories to index from bordershop.com
-	categories := [4]int64{9817, 9818, 9819, 9821}
-	// Set up datebase and insert all records
-	poll_data(categories, tg)
-
-}
-
 var strDefinitions = map[string]string{
 	"Price":              "Price of #NAME has changed from #FROM to #TO SEK\n\n",
 	"DiscountText-true":  "#NAME is now on discount!\n\n#TO!",
@@ -301,4 +283,22 @@ func format(event string, item string, from string, to string) string {
 	str = strings.ReplaceAll(str, "#TO", to)
 
 	return str
+}
+
+func main() {
+
+	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
+	flag.Parse()
+
+	api_key := os.Getenv("BS_APIKEY")
+	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
+	tg := tele.New(api_key, channel, false, *debug)
+	// temp hard set to false, read from cmd optins later for debug true/false
+	tg.Init(false)
+
+	// Categories to index from bordershop.com
+	categories := [4]int64{9817, 9818, 9819, 9821}
+	// Set up datebase and insert all records
+	poll_data(categories, tg)
+
 }
