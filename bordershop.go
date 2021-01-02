@@ -162,10 +162,10 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
 				//message = message + "Price: " + fmt.Sprintf("%f", product.Price.AmountAsDecimal) + "\n"
 				if product.AddToBasket.IsShopOnly == true {
-					message = message + "*CAN ONLY BE BOUGHT IN SHOP!*" + "\n"
+					message = message + "\n" + "*CAN ONLY BE BOUGHT IN SHOP!*" + "\n"
 				}
 				if product.AddToBasket.IsSoldOut == true {
-					message = message + "*ITEM IS SOLD OUT!*" + "\n"
+					message = message + "\n" + "*ITEM IS SOLD OUT!*" + "\n"
 				}
 				// Log messange and other info
 				log.WithFields(logrus.Fields{
