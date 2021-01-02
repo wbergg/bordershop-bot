@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wbergg/bordershop-bot/message"
+	"github.com/wbergg/bordershop-bot/terminal"
+
 	"github.com/coral/bordershop"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -41,13 +44,28 @@ type Items struct {
 
 var priceChange bool
 
-func pollData(categories [4]int64, t *tele.Tele) {
+func pollData(categories [4]int64, t message.Message) {
 	// Read in env variables for DB
 	host := os.Getenv("BS_HOST")
+	if host == "" {
+		panic("No IP address to the database specified")
+	}
 	port := 5432
+	if port == 0 {
+		panic("No port to the database specified")
+	}
 	user := os.Getenv("BS_USER")
+	if user == "" {
+		panic("No username to the database specified")
+	}
 	password := os.Getenv("BS_PASSWORD")
+	if password == "" {
+		panic("No password to the database specified")
+	}
 	dbname := os.Getenv("BS_DBNAME")
+	if dbname == "" {
+		panic("No database name specified")
+	}
 
 	//Set up data logging
 	f, err := os.OpenFile("bordershop-log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
@@ -180,8 +198,6 @@ func pollData(categories [4]int64, t *tele.Tele) {
 					"Message":        message,
 				}).Info("DEBUG from new item added")
 
-				// Print stdout message, used for debug
-				fmt.Println(message)
 				// Send message to Telegram
 				t.SendM(message)
 			}
@@ -229,8 +245,6 @@ func pollData(categories [4]int64, t *tele.Tele) {
 						}).Info("DEBUG from update on item")
 					}
 
-					// Print message to stdout for debug
-					fmt.Println(message)
 					// Send message to Telegram
 					t.SendM(message)
 				}
@@ -294,12 +308,24 @@ func main() {
 	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
 	flag.Parse()
 
-	// Telegram API key, need some error handling here if key is missing and debug is disabled...
-	tgAPIKey := os.Getenv("BS_APIKEY")
-	// Telegram channel number, need some error handling here if key is missing and debug is disabled...
-	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-	tg := tele.New(tgAPIKey, channel, false, *debug)
-	// temp hard set to false, read from cmd optins later for debug true/false
+	var tg message.Message
+
+	if *debug {
+		tg = &terminal.Terminal{}
+	} else {
+		// Telegram API key, need some error handling here if key is missing and debug is disabled...
+		tgAPIKey := os.Getenv("BS_APIKEY")
+		if tgAPIKey == "" {
+			panic("No Telegram API key specified")
+		}
+		// Telegram channel number, need some error handling here if key is missing and debug is disabled...
+		channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
+		if channel == 0 {
+			panic("No Telegram channel specified")
+		}
+		tg = tele.New(tgAPIKey, channel, false, *debug)
+	}
+
 	tg.Init(false)
 
 	// Categories to index from bordershop.com
