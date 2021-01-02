@@ -156,7 +156,9 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				message := ""
 				message = message + "*New item added to BORDERSHOP!*\n"
 				message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
-				message = message + re.ReplaceAllString(product.DisplayName, " ") + "\n"
+				message = message + "\n" + re.ReplaceAllString(product.DisplayName, " ") + "\n"
+				message = message + "\n" + "Type: " + re.ReplaceAllString(product.Uom, " ") + "\n"
+				message = message + "Amount: " + re.ReplaceAllString(product.UnitPriceText1, " ") + "\n"
 				message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
 				//message = message + "Price: " + fmt.Sprintf("%f", product.Price.AmountAsDecimal) + "\n"
 				if product.AddToBasket.IsShopOnly == true {
@@ -169,6 +171,8 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				log.WithFields(logrus.Fields{
 					"ID":             product.ID,
 					"DisplayName":    product.DisplayName,
+					"Uom":            product.Uom,
+					"UnitPriceText1": product.UnitPriceText1,
 					"UnitPriceText2": product.UnitPriceText2,
 					"IsShopOnly":     product.AddToBasket.IsShopOnly,
 					"IsSoldOut":      product.AddToBasket.IsSoldOut,
