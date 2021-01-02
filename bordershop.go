@@ -39,9 +39,9 @@ type Items struct {
 	IsSoldOut         sql.NullBool    `db:"issoldout"`
 }
 
-var price_change bool
+var priceChange bool
 
-func poll_data(categories [4]int64, t *tele.Tele) {
+func pollData(categories [4]int64, t *tele.Tele) {
 	// Read in env variables for DB
 	host := os.Getenv("BS_HOST")
 	port := 5432
@@ -272,11 +272,11 @@ func format(event string, item string, from string, to string) string {
 	}
 	// If price is false, set price to true to avoid sending unittextprice2 as well
 	if event == "Price" {
-		price_change = true
+		priceChange = true
 	}
 	// If price is true, set price to false and return nothing instead unittextprice2
-	if price_change == true && event == "UnitPriceText2" {
-		price_change = false
+	if priceChange == true && event == "UnitPriceText2" {
+		priceChange = false
 		return ""
 	}
 
@@ -295,15 +295,16 @@ func main() {
 	flag.Parse()
 
 	// Telegram API key, need some error handling here if key is missing and debug is disabled...
-	api_key := os.Getenv("BS_APIKEY")
+	tgAPIKey := os.Getenv("BS_APIKEY")
+	// Telegram channel number, need some error handling here if key is missing and debug is disabled...
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-	tg := tele.New(api_key, channel, false, *debug)
+	tg := tele.New(tgAPIKey, channel, false, *debug)
 	// temp hard set to false, read from cmd optins later for debug true/false
 	tg.Init(false)
 
 	// Categories to index from bordershop.com
 	categories := [4]int64{9817, 9818, 9819, 9821}
 	// Set up datebase and insert all records
-	poll_data(categories, tg)
+	pollData(categories, tg)
 
 }
