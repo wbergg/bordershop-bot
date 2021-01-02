@@ -49,7 +49,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 	dbname := os.Getenv("BS_DBNAME")
 
 	//Set up data logging
-	f, err := os.OpenFile("log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile("bordershop-log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
