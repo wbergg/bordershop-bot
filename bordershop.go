@@ -252,6 +252,7 @@ var strDefinitions = map[string]string{
 	"IsSoldOut-true":     "#NAME is sold out!",
 	"UnitPriceText2":     "#NAME has changed price!\n\n#TO",
 	"Image":              "#NAME has a new image!\n\n",
+	"DisplayName":        "#NAME has changed name from #FROM to #TO!",
 }
 
 func format(event string, item string, from string, to string) string {
