@@ -160,7 +160,8 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				message = message + "\n" + "Type: " + re.ReplaceAllString(product.Uom, " ") + "\n"
 				message = message + "Amount: " + re.ReplaceAllString(product.UnitPriceText1, " ") + "\n"
 				message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
-				//message = message + "Price: " + fmt.Sprintf("%f", product.Price.AmountAsDecimal) + "\n"
+
+				// Handle bool cases on newly added items
 				if product.AddToBasket.IsShopOnly == true {
 					message = message + "\n" + "*CAN ONLY BE BOUGHT IN SHOP!*" + "\n"
 				}
@@ -179,6 +180,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 					"Message":        message,
 				}).Info("DEBUG from new item added")
 
+				// Print stdout message, used for debug
 				fmt.Println(message)
 				// Send message to Telegram
 				t.SendM(message)
@@ -189,18 +191,19 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				if err != nil {
 					fmt.Println(err)
 				}
+				// If any change occured, do the following
 				if len(changelog) > 0 {
 					// Prepare telegram message
 					message := ""
 					message = message + "*UPDATE ON BORDERSHOP!*\n"
 					message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n" + "\n"
-					//message = message + re.ReplaceAllString(product.DisplayName, " ") + "\n"
+
 					for _, change := range changelog {
 						from := fmt.Sprintf("%v", change.From)
 						to := fmt.Sprintf("%v", change.To)
 						fmt.Println("Changed " + change.Path[0] + " from " + from + " to " + to)
 
-						// Update changes
+						// Update changes to the database
 						_, err := db.Exec(`UPDATE items SET `+strings.ToLower(change.Path[0])+` = $1 WHERE id = $2`,
 							to,
 							product.ID)
@@ -226,6 +229,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 						}).Info("DEBUG from update on item")
 					}
 
+					// Print message to stdout for debug
 					fmt.Println(message)
 					// Send message to Telegram
 					t.SendM(message)
@@ -286,10 +290,11 @@ func format(event string, item string, from string, to string) string {
 }
 
 func main() {
-
+	// Enable bool debug flag
 	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
 	flag.Parse()
 
+	// Telegram API key, need some error handling here if key is missing and debug is disabled...
 	api_key := os.Getenv("BS_APIKEY")
 	channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
 	tg := tele.New(api_key, channel, false, *debug)
