@@ -1,5 +1,6 @@
 CREATE TABLE "items" (
 	id int PRIMARY KEY,
+	ischeapest boolean,
 	price float,
 	displayname text,
 	brand text,

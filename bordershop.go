@@ -20,6 +20,7 @@ import (
 
 type Items struct {
 	ID                int64           `db:"id"`
+	IsCheapest        sql.NullBool    `db:"ischeapest"`
 	Price             sql.NullFloat64 `db:"price"`
 	DisplayName       string          `db:"displayname"`
 	Brand             string          `db:"brand"`
@@ -79,6 +80,10 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 
 			bordershopItem := Items{
 				ID: pid,
+				IsCheapest: sql.NullBool{
+					Bool:  product.IsCheapest,
+					Valid: true,
+				},
 				Price: sql.NullFloat64{
 					Float64: product.Price.AmountAsDecimal,
 					Valid:   true,
@@ -121,12 +126,13 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 			}
 			if databaseItem.ID != pid {
 				sqlStatement :=
-					`INSERT INTO items (id, price, displayname, brand, image, uom, qtypruom, unitpricetext1, 
+					`INSERT INTO items (id, ischeapest, price, displayname, brand, image, uom, qtypruom, unitpricetext1, 
 						unitpricetext2, discounttext, beforeprice, beforepriceprefix, splashtext, issmileoffer, 
 						isshoponly, issoldout) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`
 				_, err = db.Exec(sqlStatement,
 					product.ID,
+					product.IsCheapest,
 					product.Price.AmountAsDecimal,
 					product.DisplayName,
 					product.Brand,
@@ -161,6 +167,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 				}
 				// Log messange and other info
 				log.WithFields(logrus.Fields{
+					"ID":             product.ID,
 					"DisplayName":    product.DisplayName,
 					"UnitPriceText2": product.UnitPriceText2,
 					"IsShopOnly":     product.AddToBasket.IsShopOnly,
@@ -210,6 +217,7 @@ func poll_data(categories [4]int64, t *tele.Tele) {
 							"Change-To":      change.To,
 							"IsShopOnly":     product.AddToBasket.IsShopOnly,
 							"IsSoldOut":      product.AddToBasket.IsSoldOut,
+							"IsCheapest":     product.IsCheapest,
 							"Message":        message,
 						}).Info("DEBUG from update on item")
 					}
@@ -253,6 +261,8 @@ var strDefinitions = map[string]string{
 	"UnitPriceText2":     "#NAME has changed price!\n\n#TO",
 	"Image":              "#NAME has a new image!\n\n",
 	"DisplayName":        "#NAME has changed name from #FROM to #TO!",
+	"IsCheapest-true":    "#NAME is now classified as cheapest!\n\n",
+	"IsCheapest-false":   "#NAME is no longer classified as cheapest.\n\n",
 }
 
 func format(event string, item string, from string, to string) string {
