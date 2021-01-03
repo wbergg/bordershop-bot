@@ -50,7 +50,7 @@ func pollData(categories [4]int64, t message.Message) {
 	if host == "" {
 		panic("No IP address to the database specified")
 	}
-	port := 5432
+	port, _ := strconv.ParseInt(os.Getenv("BS_PORT"), 10, 64)
 	if port == 0 {
 		panic("No port to the database specified")
 	}
