@@ -267,6 +267,8 @@ var strDefinitions = map[string]string{
 	"DisplayName":        "#NAME has changed name from #FROM to #TO!",
 	"IsCheapest-true":    "#NAME is now classified as cheapest!\n\n",
 	"IsCheapest-false":   "#NAME is no longer classified as cheapest.\n\n",
+	"IsSmileOffer-true":  "#NAME is now a SMILE :) offer!\n\n",
+	"IsSmileOffer-false": "#NAME is no longer a SMILE :) offer.\n\n",
 }
 
 func format(event string, item string, from string, to string) string {
