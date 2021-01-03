@@ -198,7 +198,7 @@ func pollData(categories [4]int64, t message.Message) {
 					"Message":        message,
 				}).Info("DEBUG from new item added")
 
-				// Send message to Telegram
+				// Send message
 				t.SendM(message)
 			}
 			// Diff bordershop struct with database struct
@@ -245,7 +245,7 @@ func pollData(categories [4]int64, t message.Message) {
 						}).Info("DEBUG from update on item")
 					}
 
-					// Send message to Telegram
+					// Send message
 					t.SendM(message)
 				}
 			}
@@ -328,6 +328,7 @@ func main() {
 		tg = tele.New(tgAPIKey, channel, false, *debug)
 	}
 
+	// Set debug to false when loading corals tele packet
 	tg.Init(false)
 
 	// Categories to index from bordershop.com
