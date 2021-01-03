@@ -308,12 +308,31 @@ func format(event string, item string, from string, to string) string {
 func main() {
 	// Enable bool debug flag
 	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
+	telegramTest := flag.Bool("telegram-test", false, "Sends a test message to specified telegram channel")
 	flag.Parse()
 
 	var tg message.Message
 
 	if *debug {
 		tg = &terminal.Terminal{}
+	} else if *telegramTest {
+		// Telegram API key, need some error handling here if key is missing and debug is disabled...
+		tgAPIKey := os.Getenv("BS_APIKEY")
+		if tgAPIKey == "" {
+			panic("No Telegram API key specified")
+		}
+		// Telegram channel number, need some error handling here if key is missing and debug is disabled...
+		channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
+		if channel == 0 {
+			panic("No Telegram channel specified")
+		}
+		tg = tele.New(tgAPIKey, channel, false, *debug)
+		// Set debug to false when loading corals tele packet
+		tg.Init(false)
+		// Send message
+		tg.SendM("DEBUG: test message")
+		// End program after sending message
+		os.Exit(0)
 	} else {
 		// Telegram API key, need some error handling here if key is missing and debug is disabled...
 		tgAPIKey := os.Getenv("BS_APIKEY")
