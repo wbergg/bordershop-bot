@@ -1,4 +1,5 @@
 # bordershop-bot
+![bordershop-logo](https://www.bordershop.com/client/dist/gfx/svg/logo_Puttgarden.svg)
 
 A tool for scraping categories found on bordershop.com webpage and save all items to a database. Then output new entires and/or updates to a Telegram channel.
 
