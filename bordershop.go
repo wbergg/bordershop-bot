@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/r3labs/diff"
+	"github.com/wbergg/bordershop-bot/config"
+	"github.com/wbergg/bordershop-bot/db"
 	"github.com/wbergg/bordershop-bot/message"
-	"github.com/wbergg/bordershop-bot/terminal"
 
 	"github.com/coral/bordershop"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-	"github.com/r3labs/diff"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/wbergg/bordershop-bot/tele"
@@ -44,28 +43,7 @@ type Items struct {
 
 var priceChange bool
 
-func pollData(categories [4]int64, t message.Message) {
-	// Read in env variables for DB
-	host := os.Getenv("BS_HOST")
-	if host == "" {
-		panic("No IP address to the database specified")
-	}
-	port, _ := strconv.ParseInt(os.Getenv("BS_PORT"), 10, 64)
-	if port == 0 {
-		panic("No port to the database specified")
-	}
-	user := os.Getenv("BS_USER")
-	if user == "" {
-		panic("No username to the database specified")
-	}
-	password := os.Getenv("BS_PASSWORD")
-	if password == "" {
-		panic("No password to the database specified")
-	}
-	dbname := os.Getenv("BS_DBNAME")
-	if dbname == "" {
-		panic("No database name specified")
-	}
+func pollData(categories []int64, t message.Message, d *db.DBobject) {
 
 	//Set up data logging
 	f, err := os.OpenFile("bordershop-log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
@@ -81,20 +59,12 @@ func pollData(categories [4]int64, t message.Message) {
 			panic(err)
 		}
 
-		psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-			"password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
-		db, err := sqlx.Open("postgres", psqlInfo)
-		if err != nil {
-			panic(err)
-		}
-
 		for _, product := range result.Products {
+			// Defrine regexp to remove \n in strings for prettier print
+			re := regexp.MustCompile("\\n")
 
 			// Convert product.ID string to int64
 			pid, _ := strconv.ParseInt(product.ID, 10, 64)
-
-			// Defrine regexp to remove \n in strings for prettier print
-			re := regexp.MustCompile("\\n")
 
 			bordershopItem := Items{
 				ID: pid,
@@ -134,73 +104,68 @@ func pollData(categories [4]int64, t message.Message) {
 				},
 			}
 
-			query := `SELECT * FROM items WHERE id = $1`
-
-			databaseItem := Items{}
-
-			err = db.Get(&databaseItem, query, product.ID)
+			databaseItem, err := d.GetItemsByPid(pid)
 			if err != nil {
 				fmt.Println(err)
 			}
+
 			if databaseItem.ID != pid {
-				sqlStatement :=
-					`INSERT INTO items (id, ischeapest, price, displayname, brand, image, uom, qtypruom, unitpricetext1, 
-						unitpricetext2, discounttext, beforeprice, beforepriceprefix, splashtext, issmileoffer, 
-						isshoponly, issoldout) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`
-				_, err = db.Exec(sqlStatement,
-					product.ID,
-					product.IsCheapest,
-					product.Price.AmountAsDecimal,
-					product.DisplayName,
-					product.Brand,
-					product.Image,
-					product.Uom,
-					product.QtyPrUom,
-					product.UnitPriceText1,
-					product.UnitPriceText2,
-					product.Discount.DiscountText,
-					product.Discount.BeforePrice.AmountAsDecimal,
-					product.Discount.BeforePricePrefix,
-					product.Discount.SplashText,
-					product.Discount.IsSmileOffer,
-					product.AddToBasket.IsShopOnly,
-					product.AddToBasket.IsSoldOut)
+				if databaseItem.ID != pid {
+					err = d.InsertFull(pid,
+						product.IsCheapest,
+						product.Price.AmountAsDecimal,
+						product.DisplayName,
+						product.Brand,
+						product.Image,
+						product.Uom,
+						product.QtyPrUom,
+						product.UnitPriceText1,
+						product.UnitPriceText2,
+						product.Discount.DiscountText,
+						product.Discount.BeforePrice.AmountAsDecimal,
+						product.Discount.BeforePricePrefix,
+						product.Discount.SplashText,
+						product.Discount.IsSmileOffer,
+						product.AddToBasket.IsShopOnly,
+						product.AddToBasket.IsSoldOut)
 
-				if err != nil {
-					panic(err)
-				}
-				// Prepare telegram message
-				message := ""
-				message = message + "*New item added to BORDERSHOP!*\n"
-				message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
-				message = message + "\n" + re.ReplaceAllString(product.DisplayName, " ") + "\n"
-				message = message + "\n" + "Type: " + re.ReplaceAllString(product.Uom, " ") + "\n"
-				message = message + "Amount: " + re.ReplaceAllString(product.UnitPriceText1, " ") + "\n"
-				message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
+					if err != nil {
+						panic(err)
+					}
 
-				// Handle bool cases on newly added items
-				if product.AddToBasket.IsShopOnly == true {
-					message = message + "\n" + "*CAN ONLY BE BOUGHT IN SHOP!*" + "\n"
-				}
-				if product.AddToBasket.IsSoldOut == true {
-					message = message + "\n" + "*ITEM IS SOLD OUT!*" + "\n"
-				}
-				// Log messange and other info
-				log.WithFields(logrus.Fields{
-					"ID":             product.ID,
-					"DisplayName":    product.DisplayName,
-					"Uom":            product.Uom,
-					"UnitPriceText1": product.UnitPriceText1,
-					"UnitPriceText2": product.UnitPriceText2,
-					"IsShopOnly":     product.AddToBasket.IsShopOnly,
-					"IsSoldOut":      product.AddToBasket.IsSoldOut,
-					"Message":        message,
-				}).Info("DEBUG from new item added")
+					// Prepare telegram message
+					message := ""
+					message = message + "*New item added to BORDERSHOP!*\n"
+					message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
+					message = message + "\n" + re.ReplaceAllString(product.DisplayName, " ") + "\n"
+					message = message + "\n" + "Type: " + re.ReplaceAllString(product.Uom, " ") + "\n"
+					message = message + "Amount: " + re.ReplaceAllString(product.UnitPriceText1, " ") + "\n"
+					message = message + re.ReplaceAllString(product.UnitPriceText2, " ") + "\n"
 
-				// Send message
-				t.SendM(message)
+					// Handle bool cases on newly added items
+					if product.AddToBasket.IsShopOnly {
+						message = message + "\n" + "*CAN ONLY BE BOUGHT IN SHOP!*" + "\n"
+					}
+					if product.AddToBasket.IsSoldOut {
+						message = message + "\n" + "*ITEM IS SOLD OUT!*" + "\n"
+					}
+					// Log messange and other info
+					log.WithFields(logrus.Fields{
+						"ID":             product.ID,
+						"DisplayName":    product.DisplayName,
+						"Uom":            product.Uom,
+						"UnitPriceText1": product.UnitPriceText1,
+						"UnitPriceText2": product.UnitPriceText2,
+						"IsShopOnly":     product.AddToBasket.IsShopOnly,
+						"IsSoldOut":      product.AddToBasket.IsSoldOut,
+						"Message":        message,
+					}).Info("DEBUG from new item added")
+
+					// Send message
+					t.SendM(message)
+				}
 			}
+
 			// Diff bordershop struct with database struct
 			if databaseItem.ID == pid {
 				changelog, err := diff.Diff(databaseItem, bordershopItem)
@@ -220,9 +185,7 @@ func pollData(categories [4]int64, t message.Message) {
 						fmt.Println("Changed " + change.Path[0] + " from " + from + " to " + to)
 
 						// Update changes to the database
-						_, err := db.Exec(`UPDATE items SET `+strings.ToLower(change.Path[0])+` = $1 WHERE id = $2`,
-							to,
-							product.ID)
+						err := d.UpdateChangeByPid(change.Path[0], to, pid)
 						if err != nil {
 							panic(err)
 						}
@@ -250,7 +213,6 @@ func pollData(categories [4]int64, t message.Message) {
 				}
 			}
 		}
-		defer db.Close()
 	}
 }
 
@@ -305,54 +267,97 @@ func format(event string, item string, from string, to string) string {
 	return str
 }
 
+func dbSetup(categories []int64, d *db.DBobject) {
+	for _, line := range categories {
+
+		result, err := bordershop.GetCategory(line)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, product := range result.Products {
+			// Convert product.ID string to int64
+			pid, _ := strconv.ParseInt(product.ID, 10, 64)
+
+			// Add item to db if it does not exsist
+
+			err = d.GetRowItemByPid(pid)
+			if err == sql.ErrNoRows {
+				err = d.InsertFull(pid,
+					product.IsCheapest,
+					product.Price.AmountAsDecimal,
+					product.DisplayName,
+					product.Brand,
+					product.Image,
+					product.Uom,
+					product.QtyPrUom,
+					product.UnitPriceText1,
+					product.UnitPriceText2,
+					product.Discount.DiscountText,
+					product.Discount.BeforePrice.AmountAsDecimal,
+					product.Discount.BeforePricePrefix,
+					product.Discount.SplashText,
+					product.Discount.IsSmileOffer,
+					product.AddToBasket.IsShopOnly,
+					product.AddToBasket.IsSoldOut)
+
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
+}
+
 func main() {
+	var debug_telegram *bool
+	var debug_stdout *bool
+
 	// Enable bool debug flag
-	debug := flag.Bool("debug", false, "Turns on debug mode and prints to stdout")
+	debug_telegram = flag.Bool("debug", false, "Turns on debug for telegram")
+	debug_stdout = flag.Bool("stdout", false, "Turns on stdout rather than sending to telegram")
 	telegramTest := flag.Bool("telegram-test", false, "Sends a test message to specified telegram channel")
+
 	flag.Parse()
 
-	var tg message.Message
+	// Load config
+	config, err := config.LoadConfig()
+	if err != nil {
+		log.Error(err)
+		panic("Could not load config, check config/config.json")
+	}
 
-	if *debug {
-		tg = &terminal.Terminal{}
-	} else if *telegramTest {
-		// Telegram API key, need some error handling here if key is missing and debug is disabled...
-		tgAPIKey := os.Getenv("BS_APIKEY")
-		if tgAPIKey == "" {
-			panic("No Telegram API key specified")
-		}
-		// Telegram channel number, need some error handling here if key is missing and debug is disabled...
-		channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-		if channel == 0 {
-			panic("No Telegram channel specified")
-		}
-		tg = tele.New(tgAPIKey, channel, false, *debug)
-		// Set debug to false when loading corals tele packet
-		tg.Init(false)
-		// Send message
-		tg.SendM("DEBUG: test message")
+	channel, err := strconv.ParseInt(config.Telegram.TgChannel, 10, 64)
+	if err != nil {
+		log.Error(err)
+		panic("Could not convert Telegram channel to int64")
+	}
+
+	// Initiate telegram
+	tg := tele.New(config.Telegram.TgAPIKey, channel, *debug_telegram, *debug_stdout)
+	tg.Init(*debug_telegram)
+
+	// Setup db
+	d := db.Open()
+
+	// Check if DB is set up, if not, set it up (first time only)
+	if d.Setup == 0 {
+		fmt.Println("Looks like it's the first time - Populating DB...")
+		dbSetup(config.Categories, &d)
+		fmt.Println("DB population sucess! Please rerun the program!")
+		os.Exit(0)
+	}
+
+	// Program start
+	if *telegramTest {
+		tg.SendM("DEBUG: bordershop-bot test message")
 		// End program after sending message
 		os.Exit(0)
 	} else {
-		// Telegram API key, need some error handling here if key is missing and debug is disabled...
-		tgAPIKey := os.Getenv("BS_APIKEY")
-		if tgAPIKey == "" {
-			panic("No Telegram API key specified")
-		}
-		// Telegram channel number, need some error handling here if key is missing and debug is disabled...
-		channel, _ := strconv.ParseInt(os.Getenv("BS_CHANNEL"), 10, 64)
-		if channel == 0 {
-			panic("No Telegram channel specified")
-		}
-		tg = tele.New(tgAPIKey, channel, false, *debug)
+		// Poll and diff data from categories
+		pollData(config.Categories, tg, &d)
 	}
 
-	// Set debug to false when loading corals tele packet
-	tg.Init(false)
-
-	// Categories to index from bordershop.com
-	categories := [4]int64{9817, 9818, 9819, 9821}
-	// Set up datebase and insert all records
-	pollData(categories, tg)
-
+	// Close DB
+	d.Close()
 }
