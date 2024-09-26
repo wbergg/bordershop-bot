@@ -136,7 +136,7 @@ func pollData(categories []int64, t message.Message, d *db.DBobject) {
 					// Prepare telegram message
 					message := ""
 					message = message + "*New item added to BORDERSHOP!*\n"
-					message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
+					message = message + "https://cmxsapnc.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n"
 					message = message + "\n" + re.ReplaceAllString(product.DisplayName, " ") + "\n"
 					message = message + "\n" + "Type: " + re.ReplaceAllString(product.Uom, " ") + "\n"
 					message = message + "Amount: " + re.ReplaceAllString(product.UnitPriceText1, " ") + "\n"
@@ -177,7 +177,7 @@ func pollData(categories []int64, t message.Message, d *db.DBobject) {
 					// Prepare telegram message
 					message := ""
 					message = message + "*UPDATE ON BORDERSHOP!*\n"
-					message = message + "https://scandlines.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n" + "\n"
+					message = message + "https://cmxsapnc.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" + product.Image + "\n" + "\n"
 
 					for _, change := range changelog {
 						from := fmt.Sprintf("%v", change.From)
