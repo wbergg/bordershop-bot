@@ -1,0 +1,7 @@
+{
+    "Telegram": {
+		"tgAPIkey": "xxx",
+		"tgChannel": "xxx"
+	},
+	"categories": [x, y, z]
+}

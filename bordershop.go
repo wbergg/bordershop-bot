@@ -13,11 +13,11 @@ import (
 	"github.com/wbergg/bordershop-bot/config"
 	"github.com/wbergg/bordershop-bot/db"
 	"github.com/wbergg/bordershop-bot/message"
+	"github.com/wbergg/telegram"
 
 	"github.com/coral/bordershop"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/wbergg/bordershop-bot/tele"
 )
 
 type Items struct {
@@ -334,7 +334,7 @@ func main() {
 	}
 
 	// Initiate telegram
-	tg := tele.New(config.Telegram.TgAPIKey, channel, *debug_telegram, *debug_stdout)
+	tg := telegram.New(config.Telegram.TgAPIKey, channel, *debug_telegram, *debug_stdout)
 	tg.Init(*debug_telegram)
 
 	// Setup db

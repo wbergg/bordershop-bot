@@ -19,6 +19,8 @@ The new version has the following changes/features:
 * Code cleanup
 ```
 
+## Config
+
 A config.json is required to run located in the config/ dir, the file should look like this:
 ```
 {
@@ -29,6 +31,7 @@ A config.json is required to run located in the config/ dir, the file should loo
 	"categories": [x, y, z]
 }
 ```
+## DB schema
 
 Database schema can be found in the db folder: db.schema
 
