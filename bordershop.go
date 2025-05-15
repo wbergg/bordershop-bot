@@ -12,7 +12,6 @@ import (
 	"github.com/r3labs/diff"
 	"github.com/wbergg/bordershop-bot/config"
 	"github.com/wbergg/bordershop-bot/db"
-	"github.com/wbergg/bordershop-bot/message"
 	"github.com/wbergg/telegram"
 
 	"github.com/coral/bordershop"
@@ -43,7 +42,7 @@ type Items struct {
 
 var priceChange bool
 
-func pollData(categories []int64, t message.Message, d *db.DBobject) {
+func pollData(categories []int64, t *telegram.Tele, d *db.DBobject) {
 
 	//Set up data logging
 	f, err := os.OpenFile("bordershop-log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
