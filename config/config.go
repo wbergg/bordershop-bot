@@ -15,9 +15,9 @@ type Config struct {
 	Categories []int64 `json:"categories"`
 }
 
-func LoadConfig() (Config, error) {
+func LoadConfig(path string) (Config, error) {
 	var c Config
-	data, err := os.ReadFile("./config/config.json")
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, err
 	}
