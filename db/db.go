@@ -2,12 +2,34 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+// validColumns is an allowlist of column names that can be used in dynamic queries.
+var validColumns = map[string]bool{
+	"ischeapest":        true,
+	"price":             true,
+	"displayname":       true,
+	"brand":             true,
+	"image":             true,
+	"abv":               true,
+	"uom":               true,
+	"qtypruom":          true,
+	"unitpricetext1":    true,
+	"unitpricetext2":    true,
+	"discounttext":      true,
+	"beforeprice":       true,
+	"beforepriceprefix": true,
+	"splashtext":        true,
+	"issmileoffer":      true,
+	"isshoponly":        true,
+	"issoldout":         true,
+}
 
 type DBobject struct {
 	db    *sqlx.DB
@@ -35,41 +57,46 @@ type DBItemResp struct {
 	IsSoldOut         sql.NullBool    `db:"issoldout"`
 }
 
-func Open() DBobject {
+func Open() (DBobject, error) {
 	db, err := sqlx.Connect("sqlite3", "./db/db.sql")
 	if err != nil {
-		panic(err)
+		return DBobject{}, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	setup := initDB(db)
+	setup, err := initDB(db)
+	if err != nil {
+		return DBobject{}, fmt.Errorf("failed to initialize database: %w", err)
+	}
 
 	return DBobject{
 		db:    db,
 		Setup: setup,
-	}
+	}, nil
 }
 
-func initDB(db *sqlx.DB) int {
+func initDB(db *sqlx.DB) (int, error) {
 
-	// Check if table "inventory" and "loans" exists
+	// Check if table "items" exists
 	dbQuery1 := `SELECT COUNT(name) as P FROM sqlite_master WHERE type='table' AND name='items';`
 
 	var s1 int
 	err := db.Get(&s1, dbQuery1)
 	if err != nil {
-		panic(err)
+		return 0, fmt.Errorf("failed to check for items table: %w", err)
 	}
 
 	// If tables doesn't exist, create it from the schema
 	if s1 == 0 {
 		dat, err := os.ReadFile("db/db.schema")
 		if err != nil {
-			panic(err)
+			return 0, fmt.Errorf("failed to read db schema: %w", err)
 		}
-		db.MustExec(string(dat))
-		//fmt.Println(dat)
+		_, err = db.Exec(string(dat))
+		if err != nil {
+			return 0, fmt.Errorf("failed to execute db schema: %w", err)
+		}
 	}
-	return s1
+	return s1, nil
 }
 
 func (d *DBobject) Close() {
@@ -83,7 +110,7 @@ func (d *DBobject) GetAllItems() ([]DBItemResp, error) {
 
 	err := d.db.Select(&databaseResp, dbQuery)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return databaseResp, nil
@@ -131,9 +158,6 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $
 		IsShopOnly,
 		IsSoldOut)
 
-	if err != nil {
-		panic(err)
-	}
 	return err
 }
 
@@ -147,11 +171,14 @@ func (d *DBobject) GetItemsByPid(pid int64) (DBItemResp, error) {
 }
 
 func (d *DBobject) UpdateChangeByPid(column string, value string, pid int64) error {
+	col := strings.ToLower(column)
+	if !validColumns[col] {
+		return fmt.Errorf("invalid column name: %q", column)
+	}
 
-	dbQuery := `UPDATE items SET ` + strings.ToLower(column) + ` = $1 WHERE id = $2`
+	dbQuery := `UPDATE items SET ` + col + ` = $1 WHERE id = $2`
 
 	_, err := d.db.Exec(dbQuery, value, pid)
 
 	return err
-
 }

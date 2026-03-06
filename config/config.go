@@ -15,8 +15,6 @@ type Config struct {
 	Categories []int64 `json:"categories"`
 }
 
-var Loaded Config
-
 func LoadConfig() (Config, error) {
 	var c Config
 	data, err := os.ReadFile("./config/config.json")
@@ -27,7 +25,6 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	Loaded = c
 
 	return c, nil
 }
