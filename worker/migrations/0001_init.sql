@@ -1,0 +1,20 @@
+CREATE TABLE items (
+  id INTEGER PRIMARY KEY,
+  ischeapest INTEGER,
+  price REAL,
+  displayname TEXT,
+  brand TEXT,
+  image TEXT,
+  abv REAL,
+  uom TEXT,
+  qtypruom TEXT,
+  unitpricetext1 TEXT,
+  unitpricetext2 TEXT,
+  discounttext TEXT,
+  beforeprice REAL,
+  beforepriceprefix TEXT,
+  splashtext TEXT,
+  issmileoffer INTEGER,
+  isshoponly INTEGER,
+  issoldout INTEGER
+);

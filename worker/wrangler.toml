@@ -1,0 +1,15 @@
+name = "bordershop-bot"
+main = "src/index.ts"
+compatibility_date = "2026-05-23"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+CATEGORIES = "[9817, 9818, 9819]"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bordershop"
+database_id = "f83b8708-ef77-4ca9-bdb9-90f4425fc6be"
+migrations_dir = "migrations"
