@@ -1,8 +1,23 @@
 import { Hono } from "hono";
 import { authMiddleware } from "./auth";
-import { getAllItems } from "./db";
+import { getAllItems, getState, setState, deleteState } from "./db";
 import { runPoll, seedIfEmpty } from "./poll";
 import { sendTelegram } from "./telegram";
+
+const FAILURE_KEY = "poll_failure";
+
+// Clear the failure flag after a healthy poll. If we were previously failing,
+// sends a single recovery message (failing -> healthy transition).
+async function clearFailure(env: Env): Promise<void> {
+  const prev = await getState(env, FAILURE_KEY);
+  if (prev === null) return;
+  await deleteState(env, FAILURE_KEY);
+  try {
+    await sendTelegram(env, "✅ bordershop-bot recovered: polling is working again");
+  } catch (sendErr) {
+    console.error("failed to send recovery alert:", sendErr);
+  }
+}
 
 export interface Env {
   DB: D1Database;
@@ -76,17 +91,27 @@ export default {
           const seeded = await seedIfEmpty(env, categories);
           if (seeded !== null) {
             console.log(`seeded ${seeded} items`);
+            await clearFailure(env);
             return;
           }
           const result = await runPoll(env, categories, false);
           console.log("poll ok:", result);
+          // Healthy run: clear any failure flag so the next outage alerts again.
+          await clearFailure(env);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error("scheduled poll failed:", msg);
-          try {
-            await sendTelegram(env, `⚠ bordershop-bot error: ${msg}`);
-          } catch (sendErr) {
-            console.error("failed to send error alert:", sendErr);
+          // Only alert on the first failure (healthy -> failing). Subsequent
+          // failures stay quiet so a sustained outage (e.g. Bordershop
+          // maintenance) doesn't spam Telegram every 15 minutes.
+          const alreadyFailing = await getState(env, FAILURE_KEY);
+          if (alreadyFailing === null) {
+            await setState(env, FAILURE_KEY, msg);
+            try {
+              await sendTelegram(env, `⚠ bordershop-bot error: ${msg}`);
+            } catch (sendErr) {
+              console.error("failed to send error alert:", sendErr);
+            }
           }
         }
       })(),

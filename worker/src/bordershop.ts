@@ -46,6 +46,15 @@ export async function getCategory(
       `bordershop category ${categoryId} failed: ${res.status} ${res.statusText}`,
     );
   }
+  // During maintenance Bordershop serves an HTML page with HTTP 200, which
+  // would otherwise blow up in res.json() with a cryptic parse error. Detect
+  // it and throw a concise message instead of dumping the whole HTML body.
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `bordershop category ${categoryId} returned non-JSON (status ${res.status}, content-type: ${contentType || "unknown"}) — likely maintenance`,
+    );
+  }
   const body = (await res.json()) as { products?: unknown[] };
   return { products: (body.products ?? []).map(normalizeProduct) };
 }

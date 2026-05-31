@@ -41,6 +41,29 @@ export interface DBItem {
   issoldout: number | null;
 }
 
+export async function getState(env: Env, key: string): Promise<string | null> {
+  const row = await env.DB.prepare("SELECT value FROM state WHERE key = ?")
+    .bind(key)
+    .first<{ value: string }>();
+  return row?.value ?? null;
+}
+
+export async function setState(
+  env: Env,
+  key: string,
+  value: string,
+): Promise<void> {
+  await env.DB.prepare(
+    "INSERT INTO state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  )
+    .bind(key, value)
+    .run();
+}
+
+export async function deleteState(env: Env, key: string): Promise<void> {
+  await env.DB.prepare("DELETE FROM state WHERE key = ?").bind(key).run();
+}
+
 export async function countItems(env: Env): Promise<number> {
   const row = await env.DB.prepare("SELECT COUNT(*) AS c FROM items").first<{
     c: number;
