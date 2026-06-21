@@ -1,44 +1,26 @@
 import type { Env } from "./index";
 
 export const validColumns = new Set([
-  "ischeapest",
+  "name",
   "price",
-  "displayname",
-  "brand",
+  "pricesek",
+  "stockstatus",
   "image",
-  "abv",
-  "uom",
-  "qtypruom",
-  "unitpricetext1",
-  "unitpricetext2",
-  "discounttext",
-  "beforeprice",
-  "beforepriceprefix",
-  "splashtext",
-  "issmileoffer",
-  "isshoponly",
-  "issoldout",
+  "url",
+  "purchasable",
+  "promotion",
 ]);
 
 export interface DBItem {
   id: number;
-  ischeapest: number | null;
-  price: number | null;
-  displayname: string;
-  brand: string;
+  name: string;
+  price: number | null; // DKK — tracked
+  pricesek: number | null; // SEK — display only
+  stockstatus: string;
   image: string;
-  abv: number | null;
-  uom: string;
-  qtypruom: string;
-  unitpricetext1: string;
-  unitpricetext2: string;
-  discounttext: string;
-  beforeprice: number | null;
-  beforepriceprefix: string;
-  splashtext: string;
-  issmileoffer: number | null;
-  isshoponly: number | null;
-  issoldout: number | null;
+  url: string;
+  purchasable: number | null;
+  promotion: string;
 }
 
 export async function getState(env: Env, key: string): Promise<string | null> {
@@ -88,28 +70,18 @@ export async function getAllItems(env: Env): Promise<DBItem[]> {
 export function insertItemStmt(env: Env, item: DBItem): D1PreparedStatement {
   return env.DB.prepare(
     `INSERT OR IGNORE INTO items (
-      id, ischeapest, price, displayname, brand, image, uom, qtypruom,
-      unitpricetext1, unitpricetext2, discounttext, beforeprice, beforepriceprefix,
-      splashtext, issmileoffer, isshoponly, issoldout
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, name, price, pricesek, stockstatus, image, url, purchasable, promotion
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     item.id,
-    item.ischeapest,
+    item.name,
     item.price,
-    item.displayname,
-    item.brand,
+    item.pricesek,
+    item.stockstatus,
     item.image,
-    item.uom,
-    item.qtypruom,
-    item.unitpricetext1,
-    item.unitpricetext2,
-    item.discounttext,
-    item.beforeprice,
-    item.beforepriceprefix,
-    item.splashtext,
-    item.issmileoffer,
-    item.isshoponly,
-    item.issoldout,
+    item.url,
+    item.purchasable,
+    item.promotion,
   );
 }
 

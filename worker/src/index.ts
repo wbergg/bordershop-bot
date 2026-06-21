@@ -27,10 +27,10 @@ export interface Env {
   CATEGORIES: string;
 }
 
-function parseCategories(raw: string): number[] {
+function parseCategories(raw: string): string[] {
   const parsed = JSON.parse(raw) as unknown;
-  if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === "number")) {
-    throw new Error("CATEGORIES must be a JSON array of numbers");
+  if (!Array.isArray(parsed) || !parsed.every((c) => typeof c === "string")) {
+    throw new Error("CATEGORIES must be a JSON array of category codes (e.g. scacat_5101)");
   }
   return parsed;
 }

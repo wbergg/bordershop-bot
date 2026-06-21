@@ -6,52 +6,45 @@ import {
   updateColumnStmt,
   type DBItem,
 } from "./db";
-import { diffProduct, format, type FormatState } from "./diff";
+import { diffProduct, format } from "./diff";
 import { sendTelegram } from "./telegram";
 import type { Env } from "./index";
 
+// Product codes are zero-padded strings (e.g. "000000000001772127"); the
+// numeric value is used as the primary key.
+function productPid(p: BordershopProduct): number {
+  return parseInt(p.code, 10);
+}
+
 function productToDBItem(p: BordershopProduct): DBItem {
   return {
-    id: parseInt(p.id, 10),
-    ischeapest: p.isCheapest ? 1 : 0,
-    price: p.price.amountAsDecimal,
-    displayname: p.displayName,
-    brand: p.brand,
+    id: productPid(p),
+    name: p.name,
+    price: p.price, // DKK (tracked)
+    pricesek: p.priceSek, // SEK (display)
+    stockstatus: p.stockStatus,
     image: p.image,
-    abv: null,
-    uom: p.uom,
-    qtypruom: p.qtyPrUom,
-    unitpricetext1: p.unitPriceText1,
-    unitpricetext2: p.unitPriceText2,
-    discounttext: p.discount.discountText,
-    beforeprice: p.discount.beforePrice.amountAsDecimal,
-    beforepriceprefix: p.discount.beforePricePrefix,
-    splashtext: p.discount.splashText,
-    issmileoffer: p.discount.isSmileOffer ? 1 : 0,
-    isshoponly: p.addToBasket.isShopOnly ? 1 : 0,
-    issoldout: p.addToBasket.isSoldOut ? 1 : 0,
+    url: p.url,
+    purchasable: p.purchasable ? 1 : 0,
+    promotion: p.promotion,
   };
 }
 
 function newItemMessage(p: BordershopProduct): string {
   let msg = "";
-  msg += "*New item added to BORDERSHOP!*\n";
-  msg +=
-    "https://cmxsapnc.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" +
-    p.image +
-    "\n";
-  msg += "\n" + p.displayName.replaceAll("\n", " ") + "\n";
-  msg += "\n" + "Type: " + p.uom.replaceAll("\n", " ") + "\n";
-  msg += "Amount: " + p.unitPriceText1.replaceAll("\n", " ") + "\n";
-  msg += p.unitPriceText2.replaceAll("\n", " ") + "\n";
-  if (p.addToBasket.isShopOnly) msg += "\n*CAN ONLY BE BOUGHT IN SHOP!*\n";
-  if (p.addToBasket.isSoldOut) msg += "\n*ITEM IS SOLD OUT!*\n";
+  msg += "*New item added to BORDERSHOP!*\n\n";
+  msg += p.name.replaceAll("\n", " ") + "\n\n";
+  msg += "Price: " + p.priceSek + " SEK\n";
+  if (p.promotion) msg += "Offer: " + p.promotion.replaceAll("\n", " ") + "\n";
+  if (p.stockStatus === "outOfStock") msg += "\n*ITEM IS SOLD OUT!*\n";
+  else if (!p.purchasable) msg += "\n*CANNOT BE BOUGHT ONLINE!*\n";
+  if (p.url) msg += "\n" + p.url + "\n";
   return msg;
 }
 
 export async function seedIfEmpty(
   env: Env,
-  categories: number[],
+  categories: string[],
 ): Promise<number | null> {
   const existing = await countItems(env);
   if (existing > 0) return null;
@@ -61,9 +54,9 @@ export async function seedIfEmpty(
     const result = await getCategory(cat);
     const stmts: D1PreparedStatement[] = [];
     for (const product of result.products) {
-      const pid = parseInt(product.id, 10);
+      const pid = productPid(product);
       if (Number.isNaN(pid)) {
-        console.error("failed to parse product id, skipping:", product.id);
+        console.error("failed to parse product code, skipping:", product.code);
         continue;
       }
       stmts.push(insertItemStmt(env, productToDBItem(product)));
@@ -84,7 +77,7 @@ export interface PollResult {
 
 export async function runPoll(
   env: Env,
-  categories: number[],
+  categories: string[],
   dry: boolean,
 ): Promise<PollResult> {
   let inserted = 0;
@@ -97,9 +90,9 @@ export async function runPoll(
     const outgoing: string[] = [];
 
     for (const product of result.products) {
-      const pid = parseInt(product.id, 10);
+      const pid = productPid(product);
       if (Number.isNaN(pid)) {
-        console.error("failed to parse product id, skipping:", product.id);
+        console.error("failed to parse product code, skipping:", product.code);
         continue;
       }
 
@@ -115,26 +108,22 @@ export async function runPoll(
       const changes = diffProduct(existing, product);
       if (changes.length === 0) continue;
 
-      const state: FormatState = { priceChange: false };
-      let msg = "";
-      msg += "*UPDATE ON BORDERSHOP!*\n";
-      msg +=
-        "https://cmxsapnc.cloudimg.io/fit/220x220/fbright5/\\_img\\_/" +
-        product.image +
-        "\n\n";
+      let msg = "*UPDATE ON BORDERSHOP!*\n\n";
+      const name = existing.name.replaceAll("\n", " ");
 
       for (const change of changes) {
         writes.push(
           updateColumnStmt(env, change.path.toLowerCase(), change.to, pid),
         );
-        msg += format(
-          change.path,
-          existing.displayname.replaceAll("\n", " "),
-          change.from,
-          change.to,
-          state,
-        );
+        if (change.path === "Price") {
+          writes.push(updateColumnStmt(env, "pricesek", product.priceSek, pid));
+          msg += format("Price", name, existing.pricesek, product.priceSek);
+        } else {
+          msg += format(change.path, name, change.from, change.to);
+        }
       }
+
+      if (product.url) msg += product.url + "\n";
 
       outgoing.push(msg);
       updated++;

@@ -12,10 +12,10 @@ head_sampling_rate = 1
 crons = ["*/15 * * * *"]
 
 [vars]
-CATEGORIES = "[9817, 9818, 9819]"
+CATEGORIES = '["scacat_5101", "scacat_5102", "scacat_5103"]'
 
 [[d1_databases]]
 binding = "DB"
 database_name = "bordershop"
-database_id = "f83b8708-ef77-4ca9-bdb9-90f4425fc6be"
+database_id = "3ea00bb6-dd9e-4b0c-bc4e-b7a04d21f53f"
 migrations_dir = "migrations"

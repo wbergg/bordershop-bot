@@ -19,15 +19,12 @@ function boolish(v: number | null): boolean | null {
 }
 
 const trackedFields: FieldExtractor[] = [
-  { name: "IsCheapest",     fromDB: r => boolish(r.ischeapest),    fromAPI: p => p.isCheapest },
-  { name: "Price",          fromDB: r => r.price,                  fromAPI: p => p.price.amountAsDecimal },
-  { name: "DisplayName",    fromDB: r => r.displayname,            fromAPI: p => p.displayName },
-  { name: "Image",          fromDB: r => r.image,                  fromAPI: p => p.image },
-  { name: "UnitPriceText2", fromDB: r => r.unitpricetext2,         fromAPI: p => p.unitPriceText2 },
-  { name: "DiscountText",   fromDB: r => r.discounttext,           fromAPI: p => p.discount.discountText },
-  { name: "IsSmileOffer",   fromDB: r => boolish(r.issmileoffer),  fromAPI: p => p.discount.isSmileOffer },
-  { name: "IsShopOnly",     fromDB: r => boolish(r.isshoponly),    fromAPI: p => p.addToBasket.isShopOnly },
-  { name: "IsSoldOut",      fromDB: r => boolish(r.issoldout),     fromAPI: p => p.addToBasket.isSoldOut },
+  { name: "Name",        fromDB: r => r.name,                 fromAPI: p => p.name },
+  { name: "Price",       fromDB: r => r.price,                fromAPI: p => p.price },
+  { name: "StockStatus", fromDB: r => r.stockstatus,          fromAPI: p => p.stockStatus },
+  { name: "Image",       fromDB: r => r.image,                fromAPI: p => p.image },
+  { name: "Purchasable", fromDB: r => boolish(r.purchasable), fromAPI: p => p.purchasable },
+  { name: "Promotion",   fromDB: r => r.promotion,            fromAPI: p => p.promotion },
 ];
 
 export function diffProduct(row: DBItem, product: BordershopProduct): Change[] {
@@ -43,24 +40,25 @@ export function diffProduct(row: DBItem, product: BordershopProduct): Change[] {
 }
 
 const strDefinitions: Record<string, string> = {
-  "Price":              "Price of #NAME has changed from #FROM to #TO SEK\n\n",
-  "DiscountText-true":  "#NAME is now on discount!\n\n#TO!",
-  "DiscountText-false": "#NAME is no longer on discount!\n\n",
-  "IsShopOnly-false":   "#NAME can now be bought online!\n\n",
-  "IsShopOnly-true":    "#NAME can now only be bought in shop!\n\n",
-  "IsSoldOut-false":    "#NAME is back in stock!\n\n",
-  "IsSoldOut-true":     "#NAME is sold out!\n\n",
-  "UnitPriceText2":     "#NAME has changed price!\n\n#TO",
-  "Image":              "#NAME has a new image!\n\n",
-  "DisplayName":        "#NAME has changed name from #FROM to #TO!\n\n",
-  "IsCheapest-true":    "#NAME is now classified as cheapest!\n\n",
-  "IsCheapest-false":   "#NAME is no longer classified as cheapest.\n\n",
-  "IsSmileOffer-true":  "#NAME is now a SMILE :) offer!\n\n",
-  "IsSmileOffer-false": "#NAME is no longer a SMILE :) offer.\n\n",
+  "Price":                  "Price of #NAME has changed from #FROM to #TO SEK\n\n",
+  "Name":                   "#FROM has changed name to #TO!\n\n",
+  "Image":                  "#NAME has a new image!\n\n",
+  "StockStatus-inStock":    "#NAME is back in stock!\n\n",
+  "StockStatus-lowStock":   "#NAME is running low in stock!\n\n",
+  "StockStatus-outOfStock": "#NAME is sold out!\n\n",
+  "Purchasable-true":       "#NAME can now be bought online!\n\n",
+  "Purchasable-false":      "#NAME can no longer be bought online!\n\n",
+  "Promotion-set":          "#NAME has a new offer:\n\n#TO\n\n",
+  "Promotion-cleared":      "#NAME's offer has ended.\n\n",
 };
 
-export interface FormatState {
-  priceChange: boolean;
+// Maps a change to a key in strDefinitions. Boolean fields and the enum-valued
+// StockStatus get a value suffix; everything else keys on the field name alone.
+function templateKey(event: string, toStr: string): string {
+  if (event === "StockStatus") return `${event}-${toStr}`;
+  if (event === "Promotion") return toStr === "" ? "Promotion-cleared" : "Promotion-set";
+  if (toStr === "true" || toStr === "false") return `${event}-${toStr}`;
+  return event;
 }
 
 export function format(
@@ -68,25 +66,11 @@ export function format(
   item: string,
   from: unknown,
   to: unknown,
-  state: FormatState,
 ): string {
   const toStr = String(to);
   const fromStr = String(from);
 
-  let key = event;
-  if (toStr === "true") key = `${event}-true`;
-  if (toStr === "false") key = `${event}-false`;
-  if (event === "DiscountText") {
-    key = toStr === "" ? `${event}-false` : `${event}-true`;
-  }
-
-  if (event === "Price") state.priceChange = true;
-  if (state.priceChange && event === "UnitPriceText2") {
-    state.priceChange = false;
-    return "";
-  }
-
-  const tmpl = strDefinitions[key];
+  const tmpl = strDefinitions[templateKey(event, toStr)];
   if (!tmpl) return "";
   return tmpl
     .replaceAll("#NAME", item)

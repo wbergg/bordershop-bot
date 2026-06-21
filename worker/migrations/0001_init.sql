@@ -1,20 +1,16 @@
 CREATE TABLE items (
   id INTEGER PRIMARY KEY,
-  ischeapest INTEGER,
+  name TEXT,
   price REAL,
-  displayname TEXT,
-  brand TEXT,
+  pricesek REAL,
+  stockstatus TEXT,
   image TEXT,
-  abv REAL,
-  uom TEXT,
-  qtypruom TEXT,
-  unitpricetext1 TEXT,
-  unitpricetext2 TEXT,
-  discounttext TEXT,
-  beforeprice REAL,
-  beforepriceprefix TEXT,
-  splashtext TEXT,
-  issmileoffer INTEGER,
-  isshoponly INTEGER,
-  issoldout INTEGER
+  url TEXT,
+  purchasable INTEGER,
+  promotion TEXT
+);
+
+CREATE TABLE state (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
 );
