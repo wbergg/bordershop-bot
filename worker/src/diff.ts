@@ -30,6 +30,11 @@ const trackedFields: FieldExtractor[] = [
 export function diffProduct(row: DBItem, product: BordershopProduct): Change[] {
   const changes: Change[] = [];
   for (const f of trackedFields) {
+    // The storefront search returns a non-deterministic subset of each category,
+    // so when a product is omitted we only have the English OCC name. Never treat
+    // that as a rename: it would downgrade the stored Swedish name and fire a
+    // bogus notification, only to flip back when the product reappears.
+    if (f.name === "Name" && product.nameIsFallback) continue;
     const from = f.fromDB(row);
     const to = f.fromAPI(product);
     if (from !== to) {

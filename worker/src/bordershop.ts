@@ -26,6 +26,12 @@ export interface BordershopProduct {
   url: string;
   purchasable: boolean;
   promotion: string;
+  // True when the storefront search omitted this product, so `name` is the
+  // English OCC fallback rather than the Swedish storefront name. The storefront
+  // search returns a non-deterministic subset of the category, so products rotate
+  // in and out between polls; this flag lets the diff avoid downgrading a stored
+  // Swedish name to English (which would fire a bogus rename notification).
+  nameIsFallback: boolean;
 }
 
 export interface BordershopCategoryResponse {
@@ -100,6 +106,7 @@ function normalizeProduct(
     url: productUrl(raw.url),
     purchasable: b(raw.purchasable),
     promotion,
+    nameIsFallback: !nameOverride,
   };
 }
 
