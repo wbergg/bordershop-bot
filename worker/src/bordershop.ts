@@ -12,6 +12,9 @@ const PRICE_CURRENCY = "DKK";
 const DISPLAY_CURRENCY = "SEK";
 const PAGE_SIZE = 100;
 const FETCH_TIMEOUT_MS = 15000;
+// Runaway guard for storefront pagination; ~40 cards/page, so far above any
+// real category size.
+const STOREFRONT_MAX_PAGES = 20;
 
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
@@ -26,12 +29,16 @@ export interface BordershopProduct {
   url: string;
   purchasable: boolean;
   promotion: string;
-  // True when the storefront search omitted this product, so `name` is the
-  // English OCC fallback rather than the Swedish storefront name. The storefront
-  // search returns a non-deterministic subset of the category, so products rotate
-  // in and out between polls; this flag lets the diff avoid downgrading a stored
-  // Swedish name to English (which would fire a bogus rename notification).
+  // True when `name` is the English OCC fallback rather than the Swedish
+  // storefront name (the storefront card was missing, or its name did not
+  // parse). Lets the diff avoid downgrading a stored Swedish name to English,
+  // which would fire a bogus rename notification.
   nameIsFallback: boolean;
+  // True when the storefront search had no card for this product at all, so we
+  // have no idea whether it carries a promotion. Distinct from promotion === "",
+  // which means the card was present and had no deal. The diff must not read
+  // absence as "the offer ended" — that flip-flops as the storefront re-ranks.
+  promotionIsUnknown: boolean;
 }
 
 export interface BordershopCategoryResponse {
@@ -91,22 +98,22 @@ function productUrl(url: string | undefined): string {
 function normalizeProduct(
   raw: OccProduct,
   priceSek: number,
-  promotion: string,
-  nameOverride: string,
+  sf: StorefrontInfo | undefined,
 ): BordershopProduct {
   return {
     code: s(raw.code),
     // Prefer the Swedish storefront name ("...burk"); the OCC API only has the
     // English name ("...DS") and leaves the Swedish locale empty.
-    name: nameOverride || s(raw.name),
+    name: sf?.name || s(raw.name),
     price: n(raw.price?.value),
     priceSek,
     stockStatus: s(raw.stock?.stockLevelStatus),
     image: primaryImage(raw.images),
     url: productUrl(raw.url),
     purchasable: b(raw.purchasable),
-    promotion,
-    nameIsFallback: !nameOverride,
+    promotion: sf?.promotion ?? "",
+    nameIsFallback: !sf?.name,
+    promotionIsUnknown: sf === undefined,
   };
 }
 
@@ -128,32 +135,37 @@ function cleanText(raw: string): string {
     .trim();
 }
 
-// The OCC API only populates the English product name (Swedish/Danish come back
-// empty) and exposes no promotions, so we read both from the storefront search
-// HTML. Returns, keyed by numeric product code: the Swedish name (itemprop) and
-// the multi-buy promotion text.
-async function fetchStorefront(
+async function fetchStorefrontPage(
   categoryCode: string,
-): Promise<Map<string, StorefrontInfo>> {
+  page: number,
+): Promise<string> {
   const query = `:relevance:allCategories:${categoryCode}`;
-  const url = `${BASE}${STOREFRONT_PREFIX}/search/?q=${encodeURIComponent(query)}&pageSize=100`;
+  const url = `${BASE}${STOREFRONT_PREFIX}/search/?q=${encodeURIComponent(query)}&page=${page}`;
   const res = await fetch(url, {
     headers: { "User-Agent": USER_AGENT },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     throw new Error(
-      `bordershop storefront ${categoryCode} failed: ${res.status} ${res.statusText}`,
+      `bordershop storefront ${categoryCode} page ${page} failed: ${res.status} ${res.statusText}`,
     );
   }
-  const html = await res.text();
+  return await res.text();
+}
 
-  const info = new Map<string, StorefrontInfo>();
+// Parse the product cards out of one storefront search page into `info`.
+// Returns the number of cards seen, which is how pagination detects the end.
+function parseStorefrontCards(
+  html: string,
+  info: Map<string, StorefrontInfo>,
+): number {
   const cards = html.split("c-product-card js-wishlist-anchor");
+  let seen = 0;
   for (let i = 1; i < cards.length; i++) {
     const card = cards[i];
     const codeMatch = card.match(/data-track-id="0*(\d+)"/);
     if (!codeMatch) continue;
+    seen++;
 
     const nameMatch = card.match(/id="articleName-\d+"\s*>([^<]+)</);
     const name = nameMatch ? cleanText(nameMatch[1]) : "";
@@ -166,6 +178,35 @@ async function fetchStorefront(
       : "";
 
     info.set(codeMatch[1], { name, promotion });
+  }
+  return seen;
+}
+
+// The OCC API only populates the English product name (Swedish/Danish come back
+// empty) and exposes no promotions, so we read both from the storefront search
+// HTML. Returns, keyed by numeric product code: the Swedish name (itemprop) and
+// the multi-buy promotion text.
+//
+// The storefront ignores `pageSize` and renders at most 40 cards per page, so we
+// walk `&page=N` until a page yields no cards (a past-the-end page renders an
+// empty result list, not an error). Fetching only the first page used to leave
+// every product past card 40 with no storefront data — and because the
+// storefront's relevance ranking differs from OCC's and re-ranks over time,
+// products drifted across the 40-card cut and their promotions appeared to come
+// and go on every poll.
+async function fetchStorefront(
+  categoryCode: string,
+): Promise<Map<string, StorefrontInfo>> {
+  const info = new Map<string, StorefrontInfo>();
+  let page = 0;
+  for (; page < STOREFRONT_MAX_PAGES; page++) {
+    const html = await fetchStorefrontPage(categoryCode, page);
+    if (parseStorefrontCards(html, info) === 0) break;
+  }
+  if (page === STOREFRONT_MAX_PAGES) {
+    console.warn(
+      `bordershop storefront ${categoryCode} hit the ${STOREFRONT_MAX_PAGES}-page cap; some products may be missing storefront data`,
+    );
   }
   return info;
 }
@@ -243,12 +284,10 @@ export async function getCategory(
     const code = s(p.code);
     // storefront info is keyed by the numeric code (leading zeros stripped)
     const numericCode = String(parseInt(code, 10));
-    const sf = storefront.get(numericCode);
     return normalizeProduct(
       p,
       sekByCode.get(code) ?? 0,
-      sf?.promotion ?? "",
-      sf?.name ?? "",
+      storefront.get(numericCode),
     );
   });
   return { products };
