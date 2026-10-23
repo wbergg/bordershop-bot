@@ -1,4 +1,4 @@
-import { getCategory, type BordershopProduct } from "./bordershop";
+import { getCategory, getProductPrice, type BordershopProduct } from "./bordershop";
 import {
   countItems,
   getItemByPid,
@@ -105,7 +105,20 @@ export async function runPoll(
         continue;
       }
 
-      const changes = diffProduct(existing, product);
+      let changes = diffProduct(existing, product);
+      if (changes.some(c => c.path === "Price")) {
+        // Search prices flap between index replicas; confirm against the
+        // single-product endpoint before believing a price change.
+        try {
+          const verified = await getProductPrice(product.code);
+          product.price = verified.price;
+          product.priceSek = verified.priceSek;
+          changes = diffProduct(existing, product);
+        } catch (err) {
+          console.error("price verification failed, skipping price change:", product.code, err);
+          changes = changes.filter(c => c.path !== "Price");
+        }
+      }
       if (changes.length === 0) continue;
 
       let msg = "*UPDATE ON BORDERSHOP!*\n\n";

@@ -225,7 +225,10 @@ async function fetchSearchPage(
     currentPage: String(page),
   });
   const url = `${OCC}/products/search?${params.toString()}`;
+  return fetchOccJson<OccSearchResponse>(url, `category ${categoryCode}`);
+}
 
+async function fetchOccJson<T>(url: string, label: string): Promise<T> {
   const res = await fetch(url, {
     headers: {
       Accept: "application/json",
@@ -235,7 +238,7 @@ async function fetchSearchPage(
   });
   if (!res.ok) {
     throw new Error(
-      `bordershop category ${categoryCode} failed: ${res.status} ${res.statusText}`,
+      `bordershop ${label} failed: ${res.status} ${res.statusText}`,
     );
   }
   // During maintenance the platform serves an HTML page with HTTP 200, which
@@ -244,10 +247,30 @@ async function fetchSearchPage(
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     throw new Error(
-      `bordershop category ${categoryCode} returned non-JSON (status ${res.status}, content-type: ${contentType || "unknown"}) — likely maintenance`,
+      `bordershop ${label} returned non-JSON (status ${res.status}, content-type: ${contentType || "unknown"}) — likely maintenance`,
     );
   }
-  return (await res.json()) as OccSearchResponse;
+  return (await res.json()) as T;
+}
+
+// The search index is served by replicas that occasionally disagree on a
+// product's price (e.g. 74.99 vs 74.48 DKK on alternating requests), which
+// fires a phantom price change every few polls. The single-product endpoint is
+// consistent, so a price change seen in search is confirmed against it.
+export async function getProductPrice(
+  code: string,
+): Promise<{ price: number; priceSek: number }> {
+  const fetchPrice = async (currency: string) => {
+    const params = new URLSearchParams({ curr: currency, lang: LANG, fields: "BASIC" });
+    const url = `${OCC}/products/${encodeURIComponent(code)}?${params.toString()}`;
+    const body = await fetchOccJson<OccProduct>(url, `product ${code}`);
+    return n(body.price?.value);
+  };
+  const [price, priceSek] = await Promise.all([
+    fetchPrice(PRICE_CURRENCY),
+    fetchPrice(DISPLAY_CURRENCY),
+  ]);
+  return { price, priceSek };
 }
 
 async function fetchAllPages(
